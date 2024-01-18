@@ -11,6 +11,9 @@ import UIKit
 open class WSTagView: UIView, UITextInputTraits {
 
     fileprivate let textLabel = UILabel()
+    private let leftImageView = UIImageView()
+    private let rightImageView = UIImageView()
+    private let deleteButton = UIButton()
 
     open var displayText: String = "" {
         didSet {
@@ -25,7 +28,13 @@ open class WSTagView: UIView, UITextInputTraits {
             setNeedsDisplay()
         }
     }
-
+    
+    open var isWarning: Bool = false {
+        didSet {
+            layoutSubviews()
+        }
+    }
+    
     open var font: UIFont? {
         didSet {
             textLabel.font = font
@@ -72,6 +81,8 @@ open class WSTagView: UIView, UITextInputTraits {
     open var selectedTextColor: UIColor? {
         didSet { updateContent(animated: false) }
     }
+    
+    open var maxWidth: CGFloat?
 
     internal var onDidRequestDelete: ((_ tagView: WSTagView, _ replacementText: String?) -> Void)?
     internal var onDidRequestSelection: ((_ tagView: WSTagView) -> Void)?
@@ -117,6 +128,23 @@ open class WSTagView: UIView, UITextInputTraits {
         textLabel.textColor = .white
         textLabel.backgroundColor = .clear
         addSubview(textLabel)
+        
+        leftImageView.image = UIImage(systemName: "exclamationmark.circle")?.withTintColor(
+            UIColor(red: 0.9, green: 0.18, blue: 0.18, alpha: 1),
+            renderingMode: .alwaysOriginal
+        )
+        addSubview(leftImageView)
+        
+        rightImageView.image = UIImage(systemName: "xmark")?.withTintColor(
+            UIColor(red: 0.6, green: 0.6, blue: 0.6, alpha: 1),
+            renderingMode: .alwaysOriginal
+        )
+
+        addSubview(rightImageView)
+        
+        deleteButton.addTarget(self, action: #selector(onDeleteButtonTapped), for: .touchUpInside)
+        
+        addSubview(deleteButton)
 
         self.displayText = tag.text
         updateLabelText()
@@ -165,8 +193,9 @@ open class WSTagView: UIView, UITextInputTraits {
     // MARK: - Size Measurements
 
     open override var intrinsicContentSize: CGSize {
+        let width = isWarning ? 34 : 17
         let labelIntrinsicSize = textLabel.intrinsicContentSize
-        return CGSize(width: labelIntrinsicSize.width + layoutMargins.left + layoutMargins.right,
+        return CGSize(width: labelIntrinsicSize.width + layoutMargins.left + layoutMargins.right + CGFloat(width),
                       height: labelIntrinsicSize.height + layoutMargins.top + layoutMargins.bottom)
     }
 
@@ -176,7 +205,8 @@ open class WSTagView: UIView, UITextInputTraits {
         let fittingSize = CGSize(width: size.width - layoutMarginsHorizontal,
                                  height: size.height - layoutMarginsVertical)
         let labelSize = textLabel.sizeThatFits(fittingSize)
-        return CGSize(width: labelSize.width + layoutMarginsHorizontal,
+        let width = isWarning ? 34 : 17
+        return CGSize(width: labelSize.width + layoutMarginsHorizontal + CGFloat(width),
                       height: labelSize.height + layoutMarginsVertical)
     }
 
@@ -200,10 +230,17 @@ open class WSTagView: UIView, UITextInputTraits {
     // MARK: - Laying out
     open override func layoutSubviews() {
         super.layoutSubviews()
-        textLabel.frame = bounds.inset(by: layoutMargins)
-        if frame.width == 0 || frame.height == 0 {
-            frame.size = self.intrinsicContentSize
-        }
+        // Размещение leftImageView
+        leftImageView.frame = isWarning ? CGRect(x: 4, y: (frame.height - 15) / 2, width: 15, height: 15) : CGRect()
+        
+        // Размещение rightImageView
+        rightImageView.frame = CGRect(x: frame.width - 23, y: (frame.height - 15) / 2, width: 15, height: 15)
+        deleteButton.frame = CGRect(x: frame.width - 23, y: 0, width: 30, height: frame.height)
+        
+        // Настройка textLabel
+        let labelX = isWarning ? leftImageView.frame.width + 8 : 8
+        let labelWidth = isWarning ? frame.width + leftImageView.frame.width + rightImageView.frame.width + 64 : frame.width + rightImageView.frame.width + 32
+        textLabel.frame = CGRect(x: labelX, y: 0, width: labelWidth, height: frame.height)
     }
 
     // MARK: - First Responder (needed to capture keyboard)
@@ -225,10 +262,15 @@ open class WSTagView: UIView, UITextInputTraits {
 
     // MARK: - Gesture Recognizers
     @objc func handleTapGestureRecognizer(_ sender: UITapGestureRecognizer) {
-        if selected {
-            return
-        }
-        onDidRequestSelection?(self)
+//        if selected {
+//            return
+//        }
+//        onDidRequestSelection?(self)
+    }
+    
+    @objc
+    private func onDeleteButtonTapped() {
+        deleteBackward()
     }
 
 }
