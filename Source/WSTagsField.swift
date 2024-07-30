@@ -444,6 +444,25 @@ open class WSTagsField: UIScrollView {
             removeTagAtIndex(index)
         }
     }
+    
+    open func removeTags(_ indexes: [Int]) {
+        let sortedIndexes = indexes.sorted(by: >)
+
+        for index in sortedIndexes {
+            if index < 0 || index >= self.tags.count { continue }
+            
+            let tagView = self.tagViews[index]
+            tagView.removeFromSuperview()
+            self.tagViews.remove(at: index)
+
+            let removedTag = self.tags[index]
+            self.tags.remove(at: index)
+        }
+
+        onDidRemoveTag?(self, WSTag(""))
+        updatePlaceholderTextVisibility()
+        repositionViews()
+    }
 
     open func removeTagAtIndex(_ index: Int) {
         if index < 0 || index >= self.tags.count { return }
@@ -813,7 +832,7 @@ extension WSTagsField: UITextFieldDelegate {
         if let onShouldAcceptTag = onShouldAcceptTag, !onShouldAcceptTag(self) {
             return false
         }
-        if !isTextFieldEmpty, acceptTagOption.contains(.return) {
+        if !isTextFieldEmpty {
             tokenizeTextFieldText()
             return true
         }
@@ -831,7 +850,6 @@ extension WSTagsField: UITextFieldDelegate {
         }
         return true
     }
-
 }
 
 extension WSTagsField {
